@@ -1,5 +1,8 @@
 package Project03;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,6 +15,7 @@ import java.util.Map.Entry;
 public class RErrorChecker {
 	private LinkedHashMap<String, Individual> individual_Map;
 	private LinkedHashMap<String, Family> family_Map;
+	private static SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
 	HashMap<String, Date> m = new HashMap<String, Date>();
 	HashMap<String, String> m2 = new HashMap<String, String>();
 	Set<String> m3 = new HashSet<String>();
@@ -118,6 +122,26 @@ public class RErrorChecker {
 			}
 			
 		}
+		for(Entry<String, Family> family : family_Map.entrySet()){
+			Calendar cal1 = Calendar.getInstance();
+			Calendar cal2 = Calendar.getInstance();
+			Date nowTime = new Date();
+			int diffDay = 0;
+			int diffMonth = 0;
+			
+				Family fam = family.getValue();
+				cal1.setTime(fam.getMarriageDate());
+				cal2.setTime(nowTime);
+				diffDay = Math.abs(cal2.get(Calendar.DAY_OF_MONTH) - cal1.get(Calendar.DAY_OF_MONTH));
+				diffMonth = Math.abs(cal2.get(Calendar.MONTH) - cal1.get(Calendar.MONTH));
+				// Compare the dates
+				if (diffMonth == 0 && diffDay < 60) {
+					System.out.println("Anomaly US39: Individuals: " + fam.getId() + " : " + fam.getHusband() + " & "+ fam.getWife() + " has an anniversery less than 60 days from today");
+				}
+			
+
+		}
 	}
 	
 }
+	

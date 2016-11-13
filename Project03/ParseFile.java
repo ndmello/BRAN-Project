@@ -10,6 +10,8 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map.Entry;
+import java.util.List;
+import java.util.Arrays;
 
 import com.sun.glass.ui.TouchInputSupport;
 
@@ -28,6 +30,9 @@ public class ParseFile {
 	static LinkedHashMap<String, Family> famMap = new LinkedHashMap<String, Family>();
 	
 	private static String US22ErrorMsg = "";
+	static List<String> monNames = Arrays.asList(new String[]{"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"});
+	static String US41ErrorMsg = "";
+	static String US42ErrorMsg = "";
 	
 	public static void main(String[] args) {
 		String fileName ="test.ged";
@@ -142,25 +147,54 @@ public class ParseFile {
 				}
 				break;
 			case "2":
+				//Level 2 mostly contains date only, birth or death
+				if(!lineTokens[1].equals("DATE"))
+					break;
+				String day = "01";
+				String month = "JAN";
+				String year = lineTokens[2];
+				String us41ErrMesg = String.format("US41: %1s(%2s)'s date is partial.\n", indiMap.get(icounter).name, indiMap.get(icounter).id);
+				
+				if(monNames.contains(lineTokens[2])){
+					month = lineTokens[2];
+					year = lineTokens[3];
+					US41ErrorMsg += us41ErrMesg;
+				}
+				else if(tryParseInt(lineTokens[2]) && 0 < Integer.valueOf(lineTokens[2]) && Integer.valueOf(lineTokens[2]) < 32){
+					day = lineTokens[2];
+					month = lineTokens[3];
+					year = lineTokens[4];
+				}
+				else {
+					US41ErrorMsg += us41ErrMesg;
+				}
+				Date date = getDate(day+month+year);
+				if(date == null){
+					US42ErrorMsg += String.format("US42: %1s(%2s)'s dates is illegitimate.\n", indiMap.get(icounter).name, indiMap.get(icounter).id);
+					date = getDate("01JAN1900");
+				}
+				
 				switch(IFcache){
-					case "I":i = indiMap.get(icounter);
+					case "I":
+						i = indiMap.get(icounter);
 						switch(BDcache){
-							case "B":i.setBirthDate(getDate(lineTokens[2]+lineTokens[3]+lineTokens[4]));break;
-							case "D":i.setDeathDate(getDate(lineTokens[2]+lineTokens[3]+lineTokens[4]));break;
+							case "B":i.setBirthDate(date);break;
+							case "D":i.setDeathDate(date);break;
 							default:break;
 						}
 						break;
-					
-					case "F": f = famMap.get(fcounter);
+					case "F": 
+						f = famMap.get(fcounter);
 						switch(DIMcache){
-							case "M":f.setMarriageDate(getDate(lineTokens[2]+lineTokens[3]+lineTokens[4]));break;
-							case "DI":f.setDivorceDate(getDate(lineTokens[2]+lineTokens[3]+lineTokens[4]));break;
+							case "M":f.setMarriageDate(date);break;
+							case "DI":f.setDivorceDate(date);break;
 							default:break;
 						}
 						break;
-					default:break;
-					}
-				break;
+					default:
+						break;
+				}
+			break;
 			default:break;
 		}
 		
@@ -174,7 +208,7 @@ public class ParseFile {
 			dt = format.parse(date);
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		return dt;
 	}
@@ -184,6 +218,8 @@ public class ParseFile {
 		BErrorChecker bErrorChecker = new BErrorChecker(indiMap, famMap);
 		bErrorChecker.check();
 		System.out.print(US22ErrorMsg);
+		System.out.print(US41ErrorMsg);
+		System.out.print(US42ErrorMsg);
 		AErrorChecker aErrorCheck = new AErrorChecker(indiMap, famMap);
 		aErrorCheck.runLoop();
 		NErrorChecker nErrorCheck = new NErrorChecker(indiMap,famMap);
@@ -196,7 +232,8 @@ public class ParseFile {
 		RErrorChecker check = new RErrorChecker(indiMap, famMap);
 		check.user_stories();
     }
-    	
+	
+	
     private static void checkIfIdExist(String id){
     	boolean isIndividualExist = indiMap.containsKey(id);
     	boolean isFamilyExist = famMap.containsKey(id);
@@ -205,7 +242,15 @@ public class ParseFile {
     		US22ErrorMsg = US22ErrorMsg.concat(String.format("Error US22: This unique id(%1s) already exist\n", id));
     	}
     }
-
-
+	
+	
+	static boolean tryParseInt(String value) {  
+		try {  
+			Integer.parseInt(value);  
+			return true;  
+		} catch (NumberFormatException e) {  
+			return false;  
+		}  
+	}
 
 }
